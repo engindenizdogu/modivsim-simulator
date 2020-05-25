@@ -9,7 +9,6 @@ public class ModivSim {
 
     }
 
-
     public static void initialize(){
         for(int j = 0; j < v; j++)
         {
@@ -26,7 +25,6 @@ public class ModivSim {
         }
     }
 
-
     static void print_tables()
     {
         for(int i = 0; i < v; i++)
@@ -38,12 +36,6 @@ public class ModivSim {
             System.out.println();
         }
     }
-
-
-
-
-
-
 }
 
 
