@@ -5,12 +5,13 @@ import java.util.Hashtable;
  */
 public class Node {
     protected int nodeID;
-    protected Hashtable<Integer,Integer> linkCost = new Hashtable<Integer,Integer>();
-    protected Hashtable<Integer,Integer> linkBandwidth = new Hashtable<Integer,Integer>();
+    protected Hashtable<String,Integer> linkCost;
+    protected Hashtable<String,Integer> linkBandwidth;
     protected int distanceTable[][];
     protected int bottleneckBandwidthTable[];
+    protected Hashtable<String, String> forwardingTable;
 
-    public Node(int nodeID, Hashtable<Integer,Integer> linkCost, Hashtable<Integer,Integer> linkBandwidth, int distanceTable[][], int bottleneckBandwidthTable[]){
+    public Node(int nodeID, Hashtable<String,Integer> linkCost, Hashtable<String,Integer> linkBandwidth, int distanceTable[][], int bottleneckBandwidthTable[]){
         this.nodeID = nodeID;
         this.linkCost = linkCost;
         this.linkBandwidth = linkBandwidth;
@@ -27,6 +28,7 @@ public class Node {
         return false;
     }
 
+    // Initialize forwarding table
     public Hashtable<Integer,Integer> getForwardingTable(){
         return null;
     }
