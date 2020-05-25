@@ -1,11 +1,14 @@
 import java.util.Hashtable;
 
+/**
+ *
+ */
 public class Node {
-    private int nodeID;
-    private Hashtable<Integer,Integer> linkCost = new Hashtable<Integer,Integer>();
-    private Hashtable<Integer,Integer> linkBandwidth = new Hashtable<Integer,Integer>();
-    private int distanceTable[][];
-    private int bottleneckBandwidthTable[];
+    protected int nodeID;
+    protected Hashtable<Integer,Integer> linkCost = new Hashtable<Integer,Integer>();
+    protected Hashtable<Integer,Integer> linkBandwidth = new Hashtable<Integer,Integer>();
+    protected int distanceTable[][];
+    protected int bottleneckBandwidthTable[];
 
     public Node(int nodeID, Hashtable<Integer,Integer> linkCost, Hashtable<Integer,Integer> linkBandwidth, int distanceTable[][], int bottleneckBandwidthTable[]){
         this.nodeID = nodeID;
@@ -16,7 +19,8 @@ public class Node {
     }
 
     public void receiveUpdate(Message m){
-
+        System.out.println("Sender ID: " + m.senderID);
+        System.out.println("Receiver ID: " + m.receiverID);
     }
 
     public boolean sendUpdate(){
