@@ -7,8 +7,8 @@ public class Node {
     private int distanceTable[][];
     private int bottleneckBandwidthTable[];
 
-    public Node(int nodeID, HashTable<Integer,Integer> linkCost, HashTable<Integer,Integer> linkBandwidth, int distanceTable[][], int bottleneckBandwidthTable[]){
-        this.NodeID = nodeID;
+    public Node(int nodeID, Hashtable<Integer,Integer> linkCost, Hashtable<Integer,Integer> linkBandwidth, int distanceTable[][], int bottleneckBandwidthTable[]){
+        this.nodeID = nodeID;
         this.linkCost = linkCost;
         this.linkBandwidth = linkBandwidth;
         this.distanceTable = distanceTable;
@@ -17,16 +17,13 @@ public class Node {
 
     public void receiveUpdate(Message m){
 
-
     }
 
     public boolean sendUpdate(){
-
-
+        return false;
     }
 
-    public HashTable<> getForwardingTable(){
-
-
+    public Hashtable<Integer,Integer> getForwardingTable(){
+        return null;
     }
 }
