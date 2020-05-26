@@ -4,13 +4,13 @@
 public class Message {
     protected int senderID;
     protected int receiverID;
-    protected int distanceVectorEstimate; // Distance vector estimate from a node to another
+    protected int distanceVector[]; // Distance vector estimate from a node to another
     protected int linkBandwidth; // Bandwidth between sender and receiver
 
-    public Message(int senderID, int receiverID, int distanceVectorEstimate, int linkBandwidth){
+    public Message(int senderID, int receiverID, int distanceVector[], int linkBandwidth){
         this.senderID = senderID;
         this.receiverID = receiverID;
-        this.distanceVectorEstimate = distanceVectorEstimate;
+        this.distanceVector = distanceVector;
         this.linkBandwidth = linkBandwidth;
     }
 }
