@@ -1,4 +1,3 @@
-import javax.swing.plaf.synth.SynthLookAndFeel;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -7,21 +6,24 @@ import java.util.ArrayList;
 public class ModivSim extends Thread {
     private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
     private static final int SERVER_PORT = 4444;
-    static ArrayList<Node> nodes = new ArrayList<Node>(); // Arraylist to keep nodes
-    static int table[][]=new int[5][5];
+    //protected static ObjectInputStream is;
+    //protected static ObjectOutputStream os;
+    static ArrayList<Node> nodes = new ArrayList<>(); // Arraylist to keep nodes
+    static  ArrayList<Socket> sockets = new ArrayList<>(); // Arraylist to keep sockets
 
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws IOException, InterruptedException {
         System.out.println("ModivSim started...");
 
         /* Reading nodes */
         String[] nodeFiles;
         File f = new File(nodesFolder);
         nodeFiles = f.list();
+        int numNodes = nodeFiles.length; // Total number of nodes
 
         String nodeInfo;
         for(String nodeFile : nodeFiles){
             nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            Node n = initializeNode(nodeInfo);
+            Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
 
@@ -35,24 +37,42 @@ public class ModivSim extends Thread {
         }
 
         /* Create node sockets and accept incoming requests */
-        nodes.forEach((node) -> node.Connect());
-
+        nodes.forEach(node -> node.Connect());
         for(int i = 0; i < nodes.size(); i++){
             try{
                 s = serverSocket.accept();
-                System.out.println("Connection established.");
-
-                BufferedReader is = new BufferedReader(new InputStreamReader(s.getInputStream()));
-                PrintWriter os = new PrintWriter(s.getOutputStream());
+                sockets.add(s);
             } catch (IOException e){
                 e.printStackTrace();
             }
         }
+        System.out.println("All nodes initialized successfully.");
 
-        // TODO: Invoke sendUpdate() every p seconds
+        /* Update HashTables of nodes to help with neighbor communications */
+        nodes.forEach(node -> {
+            node.neighborIds.forEach(neighborId -> { // For each neighbor of the node
+                node.neighborNodes.put(String.valueOf(neighborId), nodes.get(neighborId));
+                node.neighborSockets.put(String.valueOf(neighborId), sockets.get(neighborId));
+            });
+        });
 
-        //initialize();
-        //print();
+        //TODO: Invoke sendUpdate() every p seconds
+        while(true){
+            nodes.forEach(node -> node.sendUpdate());
+            Thread.sleep(5000);
+
+            /*
+            try{
+                ObjectInputStream is = new ObjectInputStream(sockets.get(0).getInputStream());
+                Message temp = (Message) is.readObject();
+                System.out.println("MESSAGE: " + temp.receiverID);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            */
+        }
+
+        //TODO: Close sockets (modivsim and nodes)
     }
 
     /**
@@ -74,13 +94,15 @@ public class ModivSim extends Thread {
      * @param nodeInfo
      * @return
      */
-    private static Node initializeNode(String nodeInfo) {
+    private static Node initializeNode(String nodeInfo, int numNodes) {
         Node node = new Node();
-        /* Example nodeInfo: "0,(1,5,10),(2,3,15)" */
-        String info[] = nodeInfo.split("\\,\\(|\\)\\,\\(|\\)");
+        node.initializeDistanceTable(numNodes); // Initialize the distance table
 
-        String id = info[0]; // Get node id
-        node.nodeID = id; // Set node id
+        String info[] = nodeInfo.split("\\,\\(|\\)\\,\\(|\\)"); // Example nodeInfo: "0,(1,5,10),(2,3,15)"
+
+        node.nodeID = info[0]; // Set node id (string)
+        int id = Integer.parseInt(info[0]);
+        node.distanceTable[id][id] = 0; // Cost to self is 0
 
         // Getting neighbor info
         String neighbor;
@@ -88,7 +110,9 @@ public class ModivSim extends Thread {
         String neighborID;
         int linkCost;
         int linkBandwidth;
-        for(int i = 1; i < info.length; i++){
+        int numNeighbors = info.length;
+        node.numNeighbors = numNeighbors;
+        for(int i = 1; i < numNeighbors; i++){
             neighbor = info[i];
             neighborInfo = neighbor.split("\\,");
             // The information we need
@@ -97,19 +121,20 @@ public class ModivSim extends Thread {
             linkBandwidth = Integer.parseInt(neighborInfo[2]);
             node.linkCost.put(neighborID, linkCost); // Fill hashtables in node class
             node.linkBandwidth.put(neighborID, linkBandwidth); // Fill hashtables in node class
+
+            // Set distance table values
+            int neighborIdToInt = Integer.parseInt(neighborID);
+            node.distanceTable[id][neighborIdToInt] = linkCost;
+            node.distanceTable[neighborIdToInt][id] = linkCost;
+
+            // Also save neighbor id
+            node.neighborIds.add(neighborIdToInt);
         }
 
         return node;
     }
 
-    public static void initialize() {
-        for (int x = 0; x < 5; x++) {
-            for (int z = 1; z < 5; z++) {
-                table[x][z] = 999;
-            }
-        }
-    }
-
+    /*
     public static void print() {
         System.out.println("Distance Table:");
         System.out.println("dst   |   0        1        2        3");
@@ -120,6 +145,6 @@ public class ModivSim extends Thread {
             }
             System.out.println();
         }
-
     }
+    */
 }

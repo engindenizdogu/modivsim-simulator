@@ -1,23 +1,23 @@
+import java.io.Serializable;
+
 /**
  * This class represents the message exchanged between nodes
  */
-public class Message {
+public class Message implements Serializable {
     protected int senderID;
     protected int receiverID;
-    protected int distanceVector[]; // Distance vector estimate from a node to another
+    protected int[][] distanceTable; // Distance vector estimate from a node to another
     protected int linkBandwidth; // Bandwidth between sender and receiver
 
     /**
      *
      * @param senderID
      * @param receiverID
-     * @param distanceVector
-     * @param linkBandwidth
+     * @param distanceTable
      */
-    public Message(int senderID, int receiverID, int distanceVector[], int linkBandwidth){
+    public Message(int senderID, int receiverID, int[][] distanceTable){
         this.senderID = senderID;
         this.receiverID = receiverID;
-        this.distanceVector = distanceVector;
-        this.linkBandwidth = linkBandwidth;
+        this.distanceTable = distanceTable;
     }
 }
