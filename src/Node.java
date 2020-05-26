@@ -79,6 +79,20 @@ public class Node {
             is = new ObjectInputStream(neighborSocket.getInputStream());
             Message m = (Message) is.readObject();
             System.out.println("Node" + nodeID + " received a message from Node" + m.senderID);
+
+            /*
+            // Content of the distanceTable (sent from neighbor)
+            int length = m.distanceTable[0].length;
+            for(int i = 0; i < length; i++){
+                for(int j = 0; j < length; j++){
+                    System.out.print(m.distanceTable[i][j] + ", ");
+                }
+                System.out.println("");
+            }
+            */
+
+            //TODO: Update the distance table according to the formula dx(y) = min{ c(x,v) + dv(y) }
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -91,19 +105,24 @@ public class Node {
      * @return
      */
     public boolean sendUpdate(){
-        neighborIds.forEach(neighbor -> { // For each neighbor
-            Message m = new Message(Integer.parseInt(nodeID), neighbor, distanceTable);
-            try {
-                os = new ObjectOutputStream(s.getOutputStream());
-                os.writeObject(m); // Send message through socket
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        //TODO: Decide whether an update is needed or not
+        if(true){ // If an update is needed
+            neighborIds.forEach(neighbor -> { // For each neighbor
+                Message m = new Message(Integer.parseInt(nodeID), neighbor, distanceTable);
+                try {
+                    os = new ObjectOutputStream(s.getOutputStream());
+                    os.writeObject(m); // Send message through socket
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-            // Call neighbor's receive method
-            Node neighborNode = neighborNodes.get(String.valueOf(neighbor));
-            neighborNode.receiveUpdate(nodeID);
-        });
+                // Call neighbor's receive method
+                Node neighborNode = neighborNodes.get(String.valueOf(neighbor));
+                neighborNode.receiveUpdate(nodeID);
+            });
+            return true;
+        }
+
         return false;
     }
 
