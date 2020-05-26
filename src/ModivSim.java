@@ -1,3 +1,4 @@
+import javax.swing.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,7 +18,7 @@ public class ModivSim extends Thread {
         System.out.println("ModivSim started...");
         Scanner sc= new Scanner(System.in);
         System.out.print("Please enter the period: ");
-        int p= sc.nextInt();
+        int p = sc.nextInt();
         /* Reading nodes */
         String[] nodeFiles;
         File f = new File(nodesFolder);
@@ -52,6 +53,23 @@ public class ModivSim extends Thread {
             }
         }
         System.out.println("All nodes initialized successfully.");
+
+        /* Popup */
+        double time=0.0;
+        for(int x=0;x<nodes.size();x++) {
+            final JFrame output = new JFrame("Output window for Router #" +x);
+            JLabel l = new JLabel("Current state for router " +x+ " at time " +time);
+            output.add(l);
+            output.setVisible(true);
+            output.setSize(300, 300);
+            int length = nodes.get(x).distanceTable[0].length;
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                        //JLabel a = new JLabel(String.valueOf(nodes.get(x).distanceTable[i][j]));
+                       // output.add(a);
+                }
+            }
+        }
 
         /* Update HashTables of nodes to help with neighbor communications */
         nodes.forEach(node -> {
