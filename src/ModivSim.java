@@ -1,11 +1,12 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import javax.swing.plaf.synth.SynthLookAndFeel;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 
 public class ModivSim extends Thread {
-    static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final int SERVER_PORT = 4444;
     static ArrayList<Node> nodes = new ArrayList<Node>(); // Arraylist to keep nodes
     static int table[][]=new int[5][5];
 
@@ -23,6 +24,31 @@ public class ModivSim extends Thread {
             Node n = initializeNode(nodeInfo);
             nodes.add(n);
         }
+
+        /* Initialize server socket */
+        Socket s;
+        ServerSocket serverSocket = null;
+        try{
+            serverSocket = new ServerSocket(SERVER_PORT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        /* Create node sockets and accept incoming requests */
+        nodes.forEach((node) -> node.Connect());
+
+        for(int i = 0; i < nodes.size(); i++){
+            try{
+                s = serverSocket.accept();
+                System.out.println("Connection established.");
+
+                BufferedReader is = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                PrintWriter os = new PrintWriter(s.getOutputStream());
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+
 
         //initialize();
         //print();
