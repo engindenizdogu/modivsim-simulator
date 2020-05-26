@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 public class ModivSim extends Thread {
     private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    //private static final String nodesFolder = "Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -23,6 +24,7 @@ public class ModivSim extends Thread {
         String nodeInfo;
         for(String nodeFile : nodeFiles){
             nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -110,9 +112,9 @@ public class ModivSim extends Thread {
         String neighborID;
         int linkCost;
         int linkBandwidth;
-        int numNeighbors = info.length;
+        int numNeighbors = info.length - 1; // First element is the id
         node.numNeighbors = numNeighbors;
-        for(int i = 1; i < numNeighbors; i++){
+        for(int i = 1; i <= numNeighbors; i++){
             neighbor = info[i];
             neighborInfo = neighbor.split("\\,");
             // The information we need

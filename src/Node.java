@@ -1,3 +1,5 @@
+import org.w3c.dom.traversal.NodeIterator;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -80,23 +82,43 @@ public class Node {
             Message m = (Message) is.readObject();
             System.out.println("Node" + nodeID + " received a message from Node" + m.senderID);
 
-            /*
-            // Content of the distanceTable (sent from neighbor)
-            int length = m.distanceTable[0].length;
-            for(int i = 0; i < length; i++){
-                for(int j = 0; j < length; j++){
-                    System.out.print(m.distanceTable[i][j] + ", ");
+            // Update the distance table according to the formula dx(y) = min{ c(x,v) + dv(y) }
+            int numNodes = distanceTable[0].length;
+            for(int i = 0; i < numNodes; i++){
+                if(i != Integer.parseInt(nodeID)){ // i == id -> cost will be 0, so don't check
+                    int dx = distanceTable[Integer.parseInt(nodeID)][i]; // this node's distance table
+                    for(int j = 0; j < numNeighbors; j++){ // Check costs to and from each neighbor
+                        int nbrId = neighborIds.get(j);
+                        int c = linkCost.get(String.valueOf(nbrId));
+                        int dv = m.distanceTable[nbrId][i];
+                        int costFromNeighbor = c + dv;
+
+                        if(costFromNeighbor < dx){ // Update value
+                            distanceTable[Integer.parseInt(nodeID)][i] = costFromNeighbor;
+                            distanceTable[i][Integer.parseInt(nodeID)] = costFromNeighbor;
+                        }
+                    }
                 }
-                System.out.println("");
             }
-            */
-
-            //TODO: Update the distance table according to the formula dx(y) = min{ c(x,v) + dv(y) }
-
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
+        }
+
+
+        // Content of the distanceTable
+        System.out.println("Node" + nodeID + " distanceTable:");
+        int length = distanceTable[0].length;
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                if (j == length - 1) {
+                    System.out.print(distanceTable[i][j]);
+                } else {
+                    System.out.print(distanceTable[i][j] + ", ");
+                }
+            }
+            System.out.println("");
         }
     }
 
