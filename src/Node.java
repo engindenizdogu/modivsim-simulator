@@ -1,5 +1,6 @@
 import org.w3c.dom.traversal.NodeIterator;
 
+import javax.net.ssl.SSLEngineResult;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -73,6 +74,21 @@ public class Node {
 
     /**
      *
+     * @param numNodes
+     */
+    public void initializeForwardingTable(int numNodes){
+        for(int i = 0; i < numNodes; i++)
+            if(i != Integer.parseInt(nodeID)){
+                if(neighborIds.contains(i)){
+                    forwardingTable.put(String.valueOf(i),String.valueOf(i));
+                } else {
+                    forwardingTable.put(String.valueOf(i),"null");
+                }
+            }
+    }
+
+    /**
+     *
      * @param senderId
      */
     public void receiveUpdate(String senderId){
@@ -84,6 +100,7 @@ public class Node {
 
             // Update the distance table according to the formula dx(y) = min{ c(x,v) + dv(y) }
             int numNodes = distanceTable[0].length;
+            int previousCostFromNbr = 999;
             for(int i = 0; i < numNodes; i++){
                 if(i != Integer.parseInt(nodeID)){ // i == id -> cost will be 0, so don't check
                     int dx = distanceTable[Integer.parseInt(nodeID)][i]; // this node's distance table
@@ -94,18 +111,20 @@ public class Node {
                         int costFromNeighbor = c + dv;
 
                         if(costFromNeighbor < dx){ // Update value
+                            forwardingTable.replace(String.valueOf(i), String.valueOf(nbrId)); // Update forwarding table
                             distanceTable[Integer.parseInt(nodeID)][i] = costFromNeighbor;
                             distanceTable[i][Integer.parseInt(nodeID)] = costFromNeighbor;
+                        } else if (dx < costFromNeighbor && costFromNeighbor < previousCostFromNbr){
+                            String forwardingNodes = forwardingTable.get(String.valueOf(i));
+                            forwardingNodes += ", " + String.valueOf(nbrId);
+                            forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
                         }
                     }
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-
 
         // Content of the distanceTable
         System.out.println("Node" + nodeID + " distanceTable:");
@@ -119,6 +138,13 @@ public class Node {
                 }
             }
             System.out.println("");
+        }
+
+        if(nodeID.equals("0")){
+            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("1"));
+            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("2"));
+            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("3"));
+            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("4"));
         }
     }
 
@@ -152,7 +178,7 @@ public class Node {
      *
      * @return
      */
-    public Hashtable<Integer,Integer> getForwardingTable(){
-        return null;
+    public Hashtable<String,String> getForwardingTable(){
+        return forwardingTable;
     }
 }
