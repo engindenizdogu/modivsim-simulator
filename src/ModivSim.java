@@ -49,13 +49,18 @@ public class ModivSim extends Thread {
             }
         }
 
+        // TODO: Invoke sendUpdate() every p seconds
 
         //initialize();
         //print();
     }
 
-    // TODO: Read files and initialize nodes here
-
+    /**
+     *
+     * @param nodePath
+     * @return
+     * @throws IOException
+     */
     public static String readNode(String nodePath) throws IOException {
         FileReader fr = new FileReader(nodePath);
         BufferedReader br = new BufferedReader(fr);
@@ -64,6 +69,11 @@ public class ModivSim extends Thread {
         return nodeInfo;
     }
 
+    /**
+     *
+     * @param nodeInfo
+     * @return
+     */
     private static Node initializeNode(String nodeInfo) {
         Node node = new Node();
         /* Example nodeInfo: "0,(1,5,10),(2,3,15)" */

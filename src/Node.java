@@ -4,10 +4,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Hashtable;
-import java.util.PrimitiveIterator;
 
 /**
- *
+ * Node class representing every router in a network graph
  */
 public class Node {
     private static final String SERVER_ADDRESS = "localhost";
@@ -24,6 +23,14 @@ public class Node {
 
     public Node(){}
 
+    /**
+     *
+     * @param nodeID
+     * @param linkCost
+     * @param linkBandwidth
+     * @param distanceTable
+     * @param bottleneckBandwidthTable
+     */
     public Node(String nodeID, Hashtable<String,Integer> linkCost, Hashtable<String,Integer> linkBandwidth, int distanceTable[][], int bottleneckBandwidthTable[]){
         this.nodeID = nodeID;
         this.linkCost = linkCost;
@@ -48,16 +55,27 @@ public class Node {
         }
     }
 
+    /**
+     *
+     * @param m
+     */
     public void receiveUpdate(Message m){
         System.out.println("Sender ID: " + m.senderID);
         System.out.println("Receiver ID: " + m.receiverID);
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean sendUpdate(){
         return false;
     }
 
-    // Initialize forwarding table
+    /**
+     *
+     * @return
+     */
     public Hashtable<Integer,Integer> getForwardingTable(){
         return null;
     }

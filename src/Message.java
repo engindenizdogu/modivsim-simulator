@@ -7,6 +7,13 @@ public class Message {
     protected int distanceVector[]; // Distance vector estimate from a node to another
     protected int linkBandwidth; // Bandwidth between sender and receiver
 
+    /**
+     *
+     * @param senderID
+     * @param receiverID
+     * @param distanceVector
+     * @param linkBandwidth
+     */
     public Message(int senderID, int receiverID, int distanceVector[], int linkBandwidth){
         this.senderID = senderID;
         this.receiverID = receiverID;
