@@ -2,10 +2,11 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class ModivSim extends Thread {
-    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    //private static final String nodesFolder = "Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -14,7 +15,9 @@ public class ModivSim extends Thread {
 
     public static void main(String args[]) throws IOException, InterruptedException {
         System.out.println("ModivSim started...");
-
+        Scanner sc= new Scanner(System.in);
+        System.out.print("Please enter the period: ");
+        int p= sc.nextInt();
         /* Reading nodes */
         String[] nodeFiles;
         File f = new File(nodesFolder);
@@ -23,8 +26,8 @@ public class ModivSim extends Thread {
 
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -61,7 +64,7 @@ public class ModivSim extends Thread {
         //TODO: Invoke sendUpdate() every p seconds
         while(true){
             nodes.forEach(node -> node.sendUpdate());
-            Thread.sleep(5000);
+            Thread.sleep(p);
 
             /*
             try{
