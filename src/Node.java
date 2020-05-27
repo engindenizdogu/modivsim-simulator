@@ -25,6 +25,8 @@ public class Node {
     protected int[] bottleneckBandwidthTable;
     protected int numNeighbors; // Total number of neighbors
     protected ArrayList<Integer> neighborIds = new ArrayList<>(); // ArrayList containing neighbor IDs
+    protected boolean hasDynamicLink = false;
+    protected ArrayList<String> dynamicNeighbors = new ArrayList<>();
 
     /**
      *
