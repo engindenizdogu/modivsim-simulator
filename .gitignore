@@ -4,6 +4,12 @@
 # Log file
 *.log
 
+# compiler output
+target/
+
+# idea files
+.idea/misc.xml
+
 # BlueJ files
 *.ctxt
 
