@@ -3,6 +3,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
 
 public class ModivSim extends Thread {
@@ -13,6 +14,8 @@ public class ModivSim extends Thread {
     //protected static ObjectOutputStream os;
     static ArrayList<Node> nodes = new ArrayList<>(); // Arraylist to keep nodes
     static  ArrayList<Socket> sockets = new ArrayList<>(); // Arraylist to keep sockets
+    static int numDynamicLinks;
+    static Random rand = new Random();
 
     public static void main(String args[]) throws IOException, InterruptedException {
         System.out.println("ModivSim started...");
@@ -25,6 +28,7 @@ public class ModivSim extends Thread {
         nodeFiles = f.list();
         int numNodes = nodeFiles.length; // Total number of nodes
 
+        numDynamicLinks = 0;
         String nodeInfo;
         for(String nodeFile : nodeFiles){
             nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
@@ -80,6 +84,33 @@ public class ModivSim extends Thread {
         });
 
         while(true){
+            // Generate random numbers
+            int[] randomCosts = new int[numDynamicLinks];
+            if(numDynamicLinks > 0){
+                for(int i = 0; i < numDynamicLinks; i++){
+                    boolean hey = rand.nextBoolean();
+                    if(hey){
+                        randomCosts[i] = rand.nextInt(10) + 1;
+                    } else {
+                        randomCosts[i] = -1;
+                    }
+                }
+
+                for(int j = 0; j < nodes.size(); j++){
+                    Node node = nodes.get(j);
+                    if(node.hasDynamicLink){
+                        for(int k = 0; k < node.dynamicNeighbors.size(); k++){
+                            String dynamicNbr = node.dynamicNeighbors.get(k);
+                            int index = Integer.parseInt(dynamicNbr) - 1;
+                            if(index < 0) index = 0;
+                            if(randomCosts[index] != -1){
+                                node.linkCost.replace(dynamicNbr,randomCosts[index]);
+                            }
+                        }
+                    }
+                }
+            }
+
             int counter = 0;
             boolean isUpdated = false;
             for(int i = 0; i < numNodes; i++){
@@ -135,7 +166,8 @@ public class ModivSim extends Thread {
         String neighbor;
         String[] neighborInfo;
         String neighborID;
-        int linkCost;
+        String linkCost;
+        int c; // link cost
         int linkBandwidth;
         int numNeighbors = info.length - 1; // First element is the id
         node.numNeighbors = numNeighbors;
@@ -144,15 +176,23 @@ public class ModivSim extends Thread {
             neighborInfo = neighbor.split("\\,");
             // The information we need
             neighborID = neighborInfo[0];
-            linkCost = Integer.parseInt(neighborInfo[1]);
+            linkCost = neighborInfo[1];
+            if(linkCost.equals("x")){
+                numDynamicLinks++;
+                node.hasDynamicLink = true;
+                node.dynamicNeighbors.add(neighborID);
+                c = rand.nextInt(10) + 1; // between 1 and 10
+            }else{
+                c = Integer.parseInt(neighborInfo[1]);
+            }
             linkBandwidth = Integer.parseInt(neighborInfo[2]);
-            node.linkCost.put(neighborID, linkCost); // Fill hashtables in node class
+            node.linkCost.put(neighborID, c); // Fill hashtables in node class
             node.linkBandwidth.put(neighborID, linkBandwidth); // Fill hashtables in node class
 
             // Set distance table values
             int neighborIdToInt = Integer.parseInt(neighborID);
-            node.distanceTable[id][neighborIdToInt] = linkCost;
-            node.distanceTable[neighborIdToInt][id] = linkCost;
+            node.distanceTable[id][neighborIdToInt] = c;
+            node.distanceTable[neighborIdToInt][id] = c;
 
             // Also save neighbor id
             node.neighborIds.add(neighborIdToInt);
