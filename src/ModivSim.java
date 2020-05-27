@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ModivSim extends Thread {
-    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -27,8 +27,8 @@ public class ModivSim extends Thread {
 
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -79,21 +79,25 @@ public class ModivSim extends Thread {
             });
         });
 
-        //TODO: Invoke sendUpdate() every p seconds
         while(true){
-            nodes.forEach(node -> node.sendUpdate());
-            Thread.sleep(p);
-
-            /*
-            try{
-                ObjectInputStream is = new ObjectInputStream(sockets.get(0).getInputStream());
-                Message temp = (Message) is.readObject();
-                System.out.println("MESSAGE: " + temp.receiverID);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+            int counter = 0;
+            boolean isUpdated = false;
+            for(int i = 0; i < numNodes; i++){
+                Node node = nodes.get(i);
+                isUpdated = node.sendUpdate();
+                if(!isUpdated){
+                    counter++;
+                }
             }
-            */
+
+            if(counter == numNodes){
+                System.out.println("The graph has converged!");
+                break;
+            }
+            Thread.sleep(p);
         }
+
+        //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
 
         //TODO: Close sockets (modivsim and nodes)
     }
