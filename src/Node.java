@@ -110,14 +110,23 @@ public class Node {
                         int dv = m.distanceTable[nbrId][i];
                         int costFromNeighbor = c + dv;
 
+                        // TODO: Clarify this section
                         if(costFromNeighbor < dx){ // Update value
                             forwardingTable.replace(String.valueOf(i), String.valueOf(nbrId)); // Update forwarding table
                             distanceTable[Integer.parseInt(nodeID)][i] = costFromNeighbor;
                             distanceTable[i][Integer.parseInt(nodeID)] = costFromNeighbor;
-                        } else if (dx < costFromNeighbor && costFromNeighbor < previousCostFromNbr){
+                        } else if (dx < costFromNeighbor && costFromNeighbor < previousCostFromNbr){ // Find the second closest route
                             String forwardingNodes = forwardingTable.get(String.valueOf(i));
-                            forwardingNodes += ", " + String.valueOf(nbrId);
-                            forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
+                            String[] forwardInfo = forwardingNodes.split("\\,");
+                            if(forwardInfo.length < 2){
+                                forwardingNodes += ", " + String.valueOf(nbrId);
+                                forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
+                            } else {
+                                if(!forwardInfo[1].equals(String.valueOf(nbrId))){
+                                    forwardingNodes = forwardInfo[0] + ", " + String.valueOf(nbrId);
+                                    forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
+                                }
+                            }
                         }
                     }
                 }
@@ -138,13 +147,6 @@ public class Node {
                 }
             }
             System.out.println("");
-        }
-
-        if(nodeID.equals("0")){
-            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("1"));
-            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("2"));
-            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("3"));
-            System.out.println("Hhhhhhhhhhhhhhhhhhhhhh " + forwardingTable.get("4"));
         }
     }
 

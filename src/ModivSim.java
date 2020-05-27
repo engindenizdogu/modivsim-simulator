@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ModivSim extends Thread {
-    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -27,8 +27,8 @@ public class ModivSim extends Thread {
 
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
