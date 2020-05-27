@@ -58,19 +58,25 @@ public class ModivSim extends Thread {
         }
         System.out.println("All nodes initialized successfully.");
 
-        /* Popup */
+        /* POPUP */
+
+        String[] column ={"a","b","c","d","e"};
+        String[][] a = new String[numNodes][numNodes];
         double time=0.0;
         for(int x=0;x<nodes.size();x++) {
             final JFrame output = new JFrame("Output window for Router #" +x);
-            JLabel l = new JLabel("Current state for router " +x+ " at time " +time);
-            output.add(l);
             output.setVisible(true);
+            //JLabel l = new JLabel("Current state for router " +x+ " at time " +time );
+            //output.add(l);
+
             output.setSize(300, 300);
             int length = nodes.get(x).distanceTable[0].length;
             for (int i = 0; i < length; i++) {
                 for (int j = 0; j < length; j++) {
-                        //JLabel a = new JLabel(String.valueOf(nodes.get(x).distanceTable[i][j]));
-                       // output.add(a);
+                    int[][] temp=nodes.get(x).getDistanceTable();
+                    a[i][j]=(String.valueOf(temp[i][j]));
+                    JTable jt=new JTable(a,column);
+                    output.add(jt);
                 }
             }
         }
