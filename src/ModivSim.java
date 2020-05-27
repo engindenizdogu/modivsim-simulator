@@ -3,27 +3,24 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Scanner;
 
 public class ModivSim extends Thread {
-    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
     static ArrayList<Node> nodes = new ArrayList<>(); // Arraylist to keep nodes
     static  ArrayList<Socket> sockets = new ArrayList<>(); // Arraylist to keep sockets
+    static int numDynamicLinks;
+    static Random rand = new Random();
 
     public static void main(String args[]) throws IOException, InterruptedException {
         System.out.println("ModivSim started...");
         Scanner sc= new Scanner(System.in);
         System.out.print("Please enter the period: ");
-
-
-
-
-
-
         int p = sc.nextInt();
         /* Reading nodes */
         String[] nodeFiles;
@@ -31,16 +28,11 @@ public class ModivSim extends Thread {
         nodeFiles = f.list();
         int numNodes = nodeFiles.length; // Total number of nodes
 
-
-
-
-
-
-
+        numDynamicLinks = 0;
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -64,13 +56,12 @@ public class ModivSim extends Thread {
                 e.printStackTrace();
             }
         }
-
         System.out.println("All nodes initialized successfully.");
 
         /* POPUP */
 
-        String column[]={"a","b","c"};
-        String a[][]={};
+        String[] column ={"a","b","c","d","e"};
+        String[][] a = new String[numNodes][numNodes];
         double time=0.0;
         for(int x=0;x<nodes.size();x++) {
             final JFrame output = new JFrame("Output window for Router #" +x);
@@ -90,8 +81,6 @@ public class ModivSim extends Thread {
             }
         }
 
-
-
         /* Update HashTables of nodes to help with neighbor communications */
         nodes.forEach(node -> {
             node.neighborIds.forEach(neighborId -> { // For each neighbor of the node
@@ -101,6 +90,33 @@ public class ModivSim extends Thread {
         });
 
         while(true){
+            // Generate random numbers
+            int[] randomCosts = new int[numDynamicLinks];
+            if(numDynamicLinks > 0){
+                for(int i = 0; i < numDynamicLinks; i++){
+                    boolean hey = rand.nextBoolean();
+                    if(hey){
+                        randomCosts[i] = rand.nextInt(10) + 1;
+                    } else {
+                        randomCosts[i] = -1;
+                    }
+                }
+
+                for(int j = 0; j < nodes.size(); j++){
+                    Node node = nodes.get(j);
+                    if(node.hasDynamicLink){
+                        for(int k = 0; k < node.dynamicNeighbors.size(); k++){
+                            String dynamicNbr = node.dynamicNeighbors.get(k);
+                            int index = Integer.parseInt(dynamicNbr) - 1;
+                            if(index < 0) index = 0;
+                            if(randomCosts[index] != -1){
+                                node.linkCost.replace(dynamicNbr,randomCosts[index]);
+                            }
+                        }
+                    }
+                }
+            }
+
             int counter = 0;
             boolean isUpdated = false;
             for(int i = 0; i < numNodes; i++){
@@ -119,8 +135,6 @@ public class ModivSim extends Thread {
         }
 
         //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
-
-        /* Popup */
 
         //TODO: Close sockets (modivsim and nodes)
     }
@@ -158,7 +172,8 @@ public class ModivSim extends Thread {
         String neighbor;
         String[] neighborInfo;
         String neighborID;
-        int linkCost;
+        String linkCost;
+        int c; // link cost
         int linkBandwidth;
         int numNeighbors = info.length - 1; // First element is the id
         node.numNeighbors = numNeighbors;
@@ -167,15 +182,23 @@ public class ModivSim extends Thread {
             neighborInfo = neighbor.split("\\,");
             // The information we need
             neighborID = neighborInfo[0];
-            linkCost = Integer.parseInt(neighborInfo[1]);
+            linkCost = neighborInfo[1];
+            if(linkCost.equals("x")){
+                numDynamicLinks++;
+                node.hasDynamicLink = true;
+                node.dynamicNeighbors.add(neighborID);
+                c = rand.nextInt(10) + 1; // between 1 and 10
+            }else{
+                c = Integer.parseInt(neighborInfo[1]);
+            }
             linkBandwidth = Integer.parseInt(neighborInfo[2]);
-            node.linkCost.put(neighborID, linkCost); // Fill hashtables in node class
+            node.linkCost.put(neighborID, c); // Fill hashtables in node class
             node.linkBandwidth.put(neighborID, linkBandwidth); // Fill hashtables in node class
 
             // Set distance table values
             int neighborIdToInt = Integer.parseInt(neighborID);
-            node.distanceTable[id][neighborIdToInt] = linkCost;
-            node.distanceTable[neighborIdToInt][id] = linkCost;
+            node.distanceTable[id][neighborIdToInt] = c;
+            node.distanceTable[neighborIdToInt][id] = c;
 
             // Also save neighbor id
             node.neighborIds.add(neighborIdToInt);
