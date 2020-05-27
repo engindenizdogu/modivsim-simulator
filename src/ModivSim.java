@@ -255,11 +255,14 @@ public class ModivSim extends Thread {
             List<String> path = new ArrayList<>();
             path.add(source);
             Node node = nodes.get(Integer.parseInt(source)); // Initially this is the source node
+            int bottleneck = 999; // Bottleneck bandwidth
             while(!node.nodeID.equals(destination)){ // Until we reach our destination continue
                 String hops = node.forwardingTable.get(destination);
                 String firstHop = hops.substring(0,1);
                 String secondHop = hops.substring(3,4);
                 path.add(firstHop);
+                int bandwidthToHop = node.linkBandwidth.get(firstHop);
+                if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
                 node = nodes.get(Integer.parseInt(firstHop)); // Retrieve next node
             }
 
@@ -271,6 +274,9 @@ public class ModivSim extends Thread {
                     System.out.print(path.get(i) + " -> ");
                 }
             }
+
+            int duration = Integer.parseInt(size) / bottleneck;
+            System.out.println("This path is occupied for " + duration + " seconds.");
         }
     }
 
