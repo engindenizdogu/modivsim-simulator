@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ModivSim extends Thread {
-    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -18,6 +18,12 @@ public class ModivSim extends Thread {
         System.out.println("ModivSim started...");
         Scanner sc= new Scanner(System.in);
         System.out.print("Please enter the period: ");
+
+
+
+
+
+
         int p = sc.nextInt();
         /* Reading nodes */
         String[] nodeFiles;
@@ -25,10 +31,16 @@ public class ModivSim extends Thread {
         nodeFiles = f.list();
         int numNodes = nodeFiles.length; // Total number of nodes
 
+
+
+
+
+
+
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -52,24 +64,33 @@ public class ModivSim extends Thread {
                 e.printStackTrace();
             }
         }
+
         System.out.println("All nodes initialized successfully.");
 
-        /* Popup */
+        /* POPUP */
+
+        String column[]={"a","b","c"};
+        String a[][]={};
         double time=0.0;
         for(int x=0;x<nodes.size();x++) {
             final JFrame output = new JFrame("Output window for Router #" +x);
-            JLabel l = new JLabel("Current state for router " +x+ " at time " +time);
-            output.add(l);
             output.setVisible(true);
+            //JLabel l = new JLabel("Current state for router " +x+ " at time " +time );
+            //output.add(l);
+
             output.setSize(300, 300);
             int length = nodes.get(x).distanceTable[0].length;
             for (int i = 0; i < length; i++) {
                 for (int j = 0; j < length; j++) {
-                        //JLabel a = new JLabel(String.valueOf(nodes.get(x).distanceTable[i][j]));
-                       // output.add(a);
+                    int[][] temp=nodes.get(x).getDistanceTable();
+                    a[i][j]=(String.valueOf(temp[i][j]));
+                    JTable jt=new JTable(a,column);
+                    output.add(jt);
                 }
             }
         }
+
+
 
         /* Update HashTables of nodes to help with neighbor communications */
         nodes.forEach(node -> {
@@ -98,6 +119,8 @@ public class ModivSim extends Thread {
         }
 
         //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
+
+        /* Popup */
 
         //TODO: Close sockets (modivsim and nodes)
     }
