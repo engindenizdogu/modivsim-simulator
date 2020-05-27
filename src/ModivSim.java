@@ -3,11 +3,13 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class ModivSim extends Thread {
     private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String flowPath = "D:\\Code\\modivsim-simulator\\flow\\flow.txt";
     //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
@@ -57,29 +59,6 @@ public class ModivSim extends Thread {
             }
         }
         System.out.println("All nodes initialized successfully.");
-
-        /* POPUP */
-
-        String[] column ={"a","b","c","d","e"};
-        String[][] a = new String[numNodes][numNodes];
-        double time=0.0;
-        for(int x=0;x<nodes.size();x++) {
-            final JFrame output = new JFrame("Output window for Router #" +x);
-            output.setVisible(true);
-            //JLabel l = new JLabel("Current state for router " +x+ " at time " +time );
-            //output.add(l);
-
-            output.setSize(300, 300);
-            int length = nodes.get(x).distanceTable[0].length;
-            for (int i = 0; i < length; i++) {
-                for (int j = 0; j < length; j++) {
-                    int[][] temp=nodes.get(x).getDistanceTable();
-                    a[i][j]=(String.valueOf(temp[i][j]));
-                    JTable jt=new JTable(a,column);
-                    output.add(jt);
-                }
-            }
-        }
 
         /* Update HashTables of nodes to help with neighbor communications */
         nodes.forEach(node -> {
@@ -134,7 +113,33 @@ public class ModivSim extends Thread {
             Thread.sleep(p);
         }
 
-        //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
+        /* POPUP */
+        /*
+        double time=0.0;
+        for(int x = 0; x < nodes.size(); x++) {
+            String[] column ={"a","b","c","d","e"};
+            String[][] a = new String[numNodes][numNodes];
+            final JFrame output = new JFrame("Router #" +x);
+            output.setVisible(true);
+            output.setSize(400, 400);
+            //JLabel l = new JLabel("Current state for router " +x+ " at time " +time );
+            //output.add(l);
+
+            int[][] temp = nodes.get(x).getDistanceTable();
+            //int length = nodes.get(x).distanceTable[0].length;
+            int length = temp[0].length;
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                    a[i][j] = String.valueOf(temp[i][j]);
+                }
+            }
+            JTable jt = new JTable(a,column);
+            output.add(jt);
+        }
+        */
+
+        /* Flow simulation */
+        simulateFlow(flowPath);
 
         //TODO: Close sockets (modivsim and nodes)
     }
@@ -149,8 +154,29 @@ public class ModivSim extends Thread {
         FileReader fr = new FileReader(nodePath);
         BufferedReader br = new BufferedReader(fr);
         String nodeInfo = br.readLine();
+        br.close();
 
         return nodeInfo;
+    }
+
+    /**
+     *
+     * @param flowPath
+     * @return
+     * @throws IOException
+     */
+    public static List<String> readFlow(String flowPath) throws IOException {
+        FileReader fr = new FileReader(flowPath);
+        BufferedReader br = new BufferedReader(fr);
+        List<String> flowInfo = new ArrayList<>();
+
+        String line = br.readLine();
+        while(line != null){
+            flowInfo.add(line);
+            line = br.readLine();
+        }
+
+        return flowInfo;
     }
 
     /**
@@ -207,6 +233,45 @@ public class ModivSim extends Thread {
         node.initializeForwardingTable(numNodes); // Forwarding table
 
         return node;
+    }
+
+    /**
+     *
+     * @param flowPath
+     */
+    private static void simulateFlow(String flowPath) throws IOException {
+        List<String> flowInfoArray = readFlow(flowPath);
+        for(String flow : flowInfoArray){
+            String[] flowInfo = flow.split("\\,");
+            String flowId = flowInfo[0];
+            String source = flowInfo[1];
+            String destination = flowInfo[2];
+            String size = flowInfo[3];
+
+            System.out.println("\nSimulating Flow " + flowId);
+            System.out.println("Source: " + source);
+            System.out.println("Destination: " + destination);
+
+            List<String> path = new ArrayList<>();
+            path.add(source);
+            Node node = nodes.get(Integer.parseInt(source)); // Initially this is the source node
+            while(!node.nodeID.equals(destination)){ // Until we reach our destination continue
+                String hops = node.forwardingTable.get(destination);
+                String firstHop = hops.substring(0,1);
+                String secondHop = hops.substring(3,4);
+                path.add(firstHop);
+                node = nodes.get(Integer.parseInt(firstHop)); // Retrieve next node
+            }
+
+            System.out.print("Path: ");
+            for(int i = 0; i < path.size(); i++){
+                if(i == path.size() - 1){
+                    System.out.print(path.get(i) + "\n");
+                } else {
+                    System.out.print(path.get(i) + " -> ");
+                }
+            }
+        }
     }
 
     /*
