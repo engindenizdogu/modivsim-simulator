@@ -287,12 +287,12 @@ public class ModivSim extends Thread {
             while(!node.nodeID.equals(destination)){ // Until we reach our destination continue
                 String hops = node.forwardingTable.get(destination);
                 String firstHop = hops.substring(0,1);
-                String secondHop = hops.substring(3,4);
+                //String secondHop = hops.substring(3,4);
 
                 String l1 = source + firstHop;
-                String l2 = source + secondHop;
+                //String l2 = source + secondHop;
                 String durationForL1 = linkDuration.get(l1);
-                String durationForL2 = linkDuration.get(l2);
+                //String durationForL2 = linkDuration.get(l2);
 
                 if(durationForL1 == null){ // Assign first hop
                     path.add(firstHop);
