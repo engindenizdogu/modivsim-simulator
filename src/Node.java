@@ -132,6 +132,7 @@ public class Node {
                                     forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
                                 }
                             }
+
                         }
                     }
                 }
@@ -161,7 +162,7 @@ public class Node {
         int counter = 0;
         for(int i = 0; i < numNeighbors; i++){
             int neighbor = neighborIds.get(i);
-            Message m = new Message(Integer.parseInt(nodeID), neighbor, distanceTable);
+            Message m = new Message(Integer.parseInt(nodeID), neighbor, distanceTable, forwardingTable);
             try {
                 os = new ObjectOutputStream(s.getOutputStream());
                 os.writeObject(m); // Send message through socket

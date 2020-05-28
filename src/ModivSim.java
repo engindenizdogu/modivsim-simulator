@@ -1,11 +1,11 @@
+import javax.net.ssl.SSLEngineResult;
 import javax.swing.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
+import java.sql.Time;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ModivSim extends Thread {
     private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
@@ -139,7 +139,16 @@ public class ModivSim extends Thread {
         */
 
         /* Flow simulation */
+        System.out.println("\nStarting the simulation...");
         simulateFlow(flowPath);
+        System.out.println("");
+
+        Node n = nodes.get(2);
+        System.out.println(n.forwardingTable.get("0"));
+        System.out.println(n.forwardingTable.get("1"));
+        System.out.println(n.forwardingTable.get("2"));
+        System.out.println(n.forwardingTable.get("3"));
+        System.out.println(n.forwardingTable.get("4"));
 
         //TODO: Close sockets (modivsim and nodes)
     }
@@ -241,6 +250,13 @@ public class ModivSim extends Thread {
      */
     private static void simulateFlow(String flowPath) throws IOException {
         List<String> flowInfoArray = readFlow(flowPath);
+
+        long start = System.nanoTime();
+        Hashtable<String,String> linkDuration = new Hashtable<>();
+        Queue<String> flowQueue = new LinkedList<>();
+
+        System.out.println(flowInfoArray.size() + " flows found.");
+
         for(String flow : flowInfoArray){
             String[] flowInfo = flow.split("\\,");
             String flowId = flowInfo[0];
@@ -260,10 +276,52 @@ public class ModivSim extends Thread {
                 String hops = node.forwardingTable.get(destination);
                 String firstHop = hops.substring(0,1);
                 String secondHop = hops.substring(3,4);
-                path.add(firstHop);
-                int bandwidthToHop = node.linkBandwidth.get(firstHop);
-                if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
+
+                String l1 = source + firstHop;
+                String l2 = source + secondHop;
+                String durationForL1 = linkDuration.get(l1);
+                String durationForL2 = linkDuration.get(l2);
+
+                if(durationForL1 == null){ // Assign first hop
+                    path.add(firstHop);
+                    int bandwidthToHop = node.linkBandwidth.get(firstHop);
+                    if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
+                } else {
+                    int startInSecond = Math.toIntExact(TimeUnit.SECONDS.convert(start, TimeUnit.NANOSECONDS));
+                    int currentTimeInSeconds = Math.toIntExact(TimeUnit.SECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS));
+                    int timeElapsed = currentTimeInSeconds - startInSecond;
+                    if(timeElapsed < Integer.parseInt(durationForL1)){ // Link1 is still occupied, check the next link
+                        if(durationForL2 == null){
+                            path.add(secondHop);
+                            int bandwidthToHop = node.linkBandwidth.get(secondHop);
+                            if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
+                        } else {
+                            if(timeElapsed < Integer.parseInt(durationForL2)){ // Second link is also occupied, queue link
+                                System.out.println("Links are occupied, adding Flow " + flowId + " to the queue.");
+                                flowQueue.add(flow);
+                            } else { // Time has elapsed, assign link 2
+                                path.add(secondHop);
+                                int bandwidthToHop = node.linkBandwidth.get(secondHop);
+                                if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
+                            }
+                        }
+                    } else { // Time has elapsed, assign link 1
+                        path.add(firstHop);
+                        int bandwidthToHop = node.linkBandwidth.get(firstHop);
+                        if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
+                    }
+                }
+
                 node = nodes.get(Integer.parseInt(firstHop)); // Retrieve next node
+            }
+
+            // Fill the link duration table
+            int duration = Integer.parseInt(size) / bottleneck;
+            for(int i = 0; i < path.size() - 1; i++){
+                String link = path.get(i) + path.get(i + 1);
+                String linkBackwards = path.get(i + 1) + path.get(i);
+                linkDuration.put(link, String.valueOf(duration));
+                linkDuration.put(linkBackwards, String.valueOf(duration));
             }
 
             System.out.print("Path: ");
@@ -274,8 +332,6 @@ public class ModivSim extends Thread {
                     System.out.print(path.get(i) + " -> ");
                 }
             }
-
-            int duration = Integer.parseInt(size) / bottleneck;
             System.out.println("This path is occupied for " + duration + " seconds.");
         }
     }
