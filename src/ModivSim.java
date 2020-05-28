@@ -68,6 +68,7 @@ public class ModivSim extends Thread {
             });
         });
 
+        int iterations = 0;
         while(true){
             // Generate random numbers
             int[] randomCosts = new int[numDynamicLinks];
@@ -110,8 +111,11 @@ public class ModivSim extends Thread {
                 System.out.println("The graph has converged!");
                 break;
             }
+            iterations++;
             Thread.sleep(p);
         }
+
+        System.out.println("\nTotal number of iterations: " + iterations);
 
         /* POPUP */
         /*
@@ -138,17 +142,20 @@ public class ModivSim extends Thread {
         }
         */
 
-        /* Flow simulation */
-        System.out.println("\nStarting the simulation...");
-        simulateFlow(flowPath);
-        System.out.println("");
-
+        /*
         Node n = nodes.get(2);
         System.out.println(n.forwardingTable.get("0"));
         System.out.println(n.forwardingTable.get("1"));
         System.out.println(n.forwardingTable.get("2"));
         System.out.println(n.forwardingTable.get("3"));
         System.out.println(n.forwardingTable.get("4"));
+        */
+
+        /* Flow simulation */
+        System.out.println("\nStarting the simulation...");
+        simulateFlow(flowPath);
+        System.out.println("");
+
 
         //TODO: Close sockets (modivsim and nodes)
     }
@@ -332,6 +339,7 @@ public class ModivSim extends Thread {
                     System.out.print(path.get(i) + " -> ");
                 }
             }
+            System.out.println("Bottleneck bandwidth is " + bottleneck + " Mbits.");
             System.out.println("This path is occupied for " + duration + " seconds.");
         }
     }
