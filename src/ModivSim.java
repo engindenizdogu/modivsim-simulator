@@ -1,14 +1,13 @@
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
 public class ModivSim extends Thread {
-    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -31,8 +30,8 @@ public class ModivSim extends Thread {
         numDynamicLinks = 0;
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -58,28 +57,7 @@ public class ModivSim extends Thread {
         }
         System.out.println("All nodes initialized successfully.");
 
-        /* POPUP */
 
-        String[] column ={"a","b","c","d","e"};
-        String[][] a = new String[numNodes][numNodes];
-        double time=0.0;
-        for(int x=0;x<nodes.size();x++) {
-            final JFrame output = new JFrame("Output window for Router #" +x);
-            output.setVisible(true);
-            //JLabel l = new JLabel("Current state for router " +x+ " at time " +time );
-            //output.add(l);
-
-            output.setSize(300, 300);
-            int length = nodes.get(x).distanceTable[0].length;
-            for (int i = 0; i < length; i++) {
-                for (int j = 0; j < length; j++) {
-                    int[][] temp=nodes.get(x).getDistanceTable();
-                    a[i][j]=(String.valueOf(temp[i][j]));
-                    JTable jt=new JTable(a,column);
-                    output.add(jt);
-                }
-            }
-        }
 
         /* Update HashTables of nodes to help with neighbor communications */
         nodes.forEach(node -> {
@@ -134,6 +112,42 @@ public class ModivSim extends Thread {
             Thread.sleep(p);
         }
 
+        /* POPUP */
+
+        String[] column = new String[numNodes];
+        Arrays.fill(column, "Node");
+        String[][] a = new String[numNodes][numNodes];
+        String[][] b = new String[numNodes][2];
+        double time=0.0;
+
+        //Distance table
+        for(int x=0;x<nodes.size();x++) {
+            final JFrame output = new JFrame("Output window for Router #" + x);
+            output.setVisible(true);
+            JLabel l = new JLabel("Current state for router " + x + " at time " + time);
+            output.add(l,BorderLayout.NORTH);
+
+            output.setSize(300, 300);
+            int length = nodes.get(x).distanceTable[0].length;
+            for (int i = 0; i < length; i++) {
+                for (int j = 0; j < length; j++) {
+                    int[][] temp = nodes.get(x).getDistanceTable();
+                    a[i][j] = (String.valueOf(temp[i][j]));
+                    JTable jt = new JTable(a, column);
+                    output.add(jt, BorderLayout.CENTER);
+                }
+            }
+
+            //Forwarding table
+            for (int i = 0; i < numNodes; i++) {
+                Hashtable<String, String> temp = nodes.get(x).getForwardingTable();
+                b[i][1] = temp.get(i);
+                b[i][0]=String.valueOf(temp.get(i));
+                JTable ft = new JTable(b, column);
+                output.add(ft, BorderLayout.SOUTH);
+
+            }
+        }
         //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
 
         //TODO: Close sockets (modivsim and nodes)
@@ -209,17 +223,4 @@ public class ModivSim extends Thread {
         return node;
     }
 
-    /*
-    public static void print() {
-        System.out.println("Distance Table:");
-        System.out.println("dst   |   0        1        2        3");
-        System.out.printf("---------------------------------------\n");
-        for (int x = 0; x < 5; x++) {
-            for (int z = 0; z < 5; z++) {
-                System.out.print(table[x][z] + "      ");
-            }
-            System.out.println();
-        }
-    }
-    */
 }
