@@ -265,6 +265,7 @@ public class ModivSim extends Thread {
         System.out.println(flowInfoArray.size() + " flows found.");
 
         for(String flow : flowInfoArray){
+            boolean isQueued = false;
             String[] flowInfo = flow.split("\\,");
             String flowId = flowInfo[0];
             String source = flowInfo[1];
@@ -294,6 +295,7 @@ public class ModivSim extends Thread {
                     int bandwidthToHop = node.linkBandwidth.get(firstHop);
                     if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
                 } else {
+                    /*
                     int startInSecond = Math.toIntExact(TimeUnit.SECONDS.convert(start, TimeUnit.NANOSECONDS));
                     int currentTimeInSeconds = Math.toIntExact(TimeUnit.SECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS));
                     int timeElapsed = currentTimeInSeconds - startInSecond;
@@ -317,6 +319,11 @@ public class ModivSim extends Thread {
                         int bandwidthToHop = node.linkBandwidth.get(firstHop);
                         if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
                     }
+                    */
+                    System.out.println("Links are occupied, adding Flow " + flowId + " to the queue.");
+                    flowQueue.add(flow);
+                    isQueued = true;
+                    break;
                 }
 
                 node = nodes.get(Integer.parseInt(firstHop)); // Retrieve next node
@@ -331,16 +338,18 @@ public class ModivSim extends Thread {
                 linkDuration.put(linkBackwards, String.valueOf(duration));
             }
 
-            System.out.print("Path: ");
-            for(int i = 0; i < path.size(); i++){
-                if(i == path.size() - 1){
-                    System.out.print(path.get(i) + "\n");
-                } else {
-                    System.out.print(path.get(i) + " -> ");
+            if(!isQueued) {
+                System.out.print("Path: ");
+                for (int i = 0; i < path.size(); i++) {
+                    if (i == path.size() - 1) {
+                        System.out.print(path.get(i) + "\n");
+                    } else {
+                        System.out.print(path.get(i) + " -> ");
+                    }
                 }
+                System.out.println("Bottleneck bandwidth is " + bottleneck + " Mbits.");
+                System.out.println("This path is occupied for " + duration + " seconds.");
             }
-            System.out.println("Bottleneck bandwidth is " + bottleneck + " Mbits.");
-            System.out.println("This path is occupied for " + duration + " seconds.");
         }
     }
 
