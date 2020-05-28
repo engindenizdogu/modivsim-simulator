@@ -2,12 +2,12 @@ import javax.swing.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
 public class ModivSim extends Thread {
-    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    private static final String projectFolder = "C:\\Users\\kedicik\\Desktop\\comp416 Project3\\modivsim-simulator"; //CHANGE HERE FOR PROJECT DIRECTORY!!!
+    private static final String nodesFolder = projectFolder + "\\nodes";
+    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
     //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
@@ -16,10 +16,13 @@ public class ModivSim extends Thread {
     static  ArrayList<Socket> sockets = new ArrayList<>(); // Arraylist to keep sockets
     static int numDynamicLinks;
     static Random rand = new Random();
+    static ArrayList<String> busyNodes = new ArrayList<>();
+    static ArrayList<String> tempBusyNodes = new ArrayList<>();
+    static Queue<String> flowQueue = new LinkedList<>();
 
     public static void main(String args[]) throws IOException, InterruptedException {
         System.out.println("ModivSim started...");
-        Scanner sc= new Scanner(System.in);
+        Scanner sc = new Scanner(System.in);
         System.out.print("Please enter the period: ");
         int p = sc.nextInt();
         /* Reading nodes */
@@ -30,7 +33,7 @@ public class ModivSim extends Thread {
 
         numDynamicLinks = 0;
         String nodeInfo;
-        for(String nodeFile : nodeFiles){
+        for (String nodeFile : nodeFiles) {
             nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
             //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
@@ -40,7 +43,7 @@ public class ModivSim extends Thread {
         /* Initialize server socket */
         Socket s;
         ServerSocket serverSocket = null;
-        try{
+        try {
             serverSocket = new ServerSocket(SERVER_PORT);
         } catch (IOException e) {
             e.printStackTrace();
@@ -48,29 +51,29 @@ public class ModivSim extends Thread {
 
         /* Create node sockets and accept incoming requests */
         nodes.forEach(node -> node.Connect());
-        for(int i = 0; i < nodes.size(); i++){
-            try{
+        for (int i = 0; i < nodes.size(); i++) {
+            try {
                 s = serverSocket.accept();
                 sockets.add(s);
-            } catch (IOException e){
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         System.out.println("All nodes initialized successfully.");
 
         /* Popup */
-        double time=0.0;
-        for(int x=0;x<nodes.size();x++) {
-            final JFrame output = new JFrame("Output window for Router #" +x);
-            JLabel l = new JLabel("Current state for router " +x+ " at time " +time);
+        double time = 0.0;
+        for (int x = 0; x < nodes.size(); x++) {
+            final JFrame output = new JFrame("Output window for Router #" + x);
+            JLabel l = new JLabel("Current state for router " + x + " at time " + time);
             output.add(l);
             output.setVisible(true);
             output.setSize(300, 300);
             int length = nodes.get(x).distanceTable[0].length;
             for (int i = 0; i < length; i++) {
                 for (int j = 0; j < length; j++) {
-                        //JLabel a = new JLabel(String.valueOf(nodes.get(x).distanceTable[i][j]));
-                       // output.add(a);
+                    //JLabel a = new JLabel(String.valueOf(nodes.get(x).distanceTable[i][j]));
+                    // output.add(a);
                 }
             }
         }
@@ -83,28 +86,28 @@ public class ModivSim extends Thread {
             });
         });
 
-        while(true){
+        while (true) {
             // Generate random numbers
             int[] randomCosts = new int[numDynamicLinks];
-            if(numDynamicLinks > 0){
-                for(int i = 0; i < numDynamicLinks; i++){
+            if (numDynamicLinks > 0) {
+                for (int i = 0; i < numDynamicLinks; i++) {
                     boolean hey = rand.nextBoolean();
-                    if(hey){
+                    if (hey) {
                         randomCosts[i] = rand.nextInt(10) + 1;
                     } else {
                         randomCosts[i] = -1;
                     }
                 }
 
-                for(int j = 0; j < nodes.size(); j++){
+                for (int j = 0; j < nodes.size(); j++) {
                     Node node = nodes.get(j);
-                    if(node.hasDynamicLink){
-                        for(int k = 0; k < node.dynamicNeighbors.size(); k++){
+                    if (node.hasDynamicLink) {
+                        for (int k = 0; k < node.dynamicNeighbors.size(); k++) {
                             String dynamicNbr = node.dynamicNeighbors.get(k);
                             int index = Integer.parseInt(dynamicNbr) - 1;
-                            if(index < 0) index = 0;
-                            if(randomCosts[index] != -1){
-                                node.linkCost.replace(dynamicNbr,randomCosts[index]);
+                            if (index < 0) index = 0;
+                            if (randomCosts[index] != -1) {
+                                node.linkCost.replace(dynamicNbr, randomCosts[index]);
                             }
                         }
                     }
@@ -113,15 +116,15 @@ public class ModivSim extends Thread {
 
             int counter = 0;
             boolean isUpdated = false;
-            for(int i = 0; i < numNodes; i++){
+            for (int i = 0; i < numNodes; i++) {
                 Node node = nodes.get(i);
                 isUpdated = node.sendUpdate();
-                if(!isUpdated){
+                if (!isUpdated) {
                     counter++;
                 }
             }
 
-            if(counter == numNodes){
+            if (counter == numNodes) {
                 System.out.println("The graph has converged!");
                 break;
             }
@@ -131,6 +134,70 @@ public class ModivSim extends Thread {
         //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
 
         //TODO: Close sockets (modivsim and nodes)
+
+        System.out.println("\nFlow Routing Simulation");
+
+        String textLine = "";
+
+        File file = new File(projectFolder + "\\flow.txt");
+        Scanner input = new Scanner(file);
+
+        while (input.hasNextLine()) {
+            textLine = input.nextLine();
+            String[] flow = textLine.split(", ");
+            String label = flow[0];
+            String source = flow[1];
+            String destination = flow[2];
+            int flowSize;
+            try {
+                flowSize = Integer.parseInt(flow[3]);
+            }
+            catch (NumberFormatException e)
+            {
+                flowSize = 0;
+            }
+
+
+            String flowRoute = getFlowRoute(source, destination);
+            if (flowRoute == null) {
+                flowRoute = "Flow is added to the queue.";
+                flowQueue.add(textLine);
+            }
+
+            System.out.println("\nFlow " + label + ", Source: " + source + ", Destination: " + destination);
+            System.out.println("Route: " + flowRoute + "Flow Size : " + flowSize);
+
+        }
+        System.out.println("Queue: " + flowQueue);
+    }
+
+    public static String getFlowRoute(String source, String dest){
+        if (source == dest){
+            busyNodes.addAll(tempBusyNodes);
+            tempBusyNodes.clear();
+            return dest;
+        }
+        String nextHopValues = nodes.get(Integer.parseInt(source)).getForwardingTable().get(dest);
+        if(nextHopValues == null){
+            tempBusyNodes.clear();
+            return "No link available.";
+        }
+
+        String[] hopVals = nextHopValues.split(",");
+        for(int i = 0; i<hopVals.length; i++){
+            String possibleHop = hopVals[i];
+            if(!isNodeBusy(possibleHop)){
+                tempBusyNodes.add(possibleHop);
+                return source + "->" + getFlowRoute(possibleHop, dest);
+            }
+        }
+        //if all nodes busy case
+        return null;
+    }
+
+    public static boolean isNodeBusy(String node){
+        if (busyNodes.isEmpty()) return false;
+        return busyNodes.contains(node);
     }
 
     /**
