@@ -278,6 +278,7 @@ public class ModivSim extends Thread {
             System.out.println("\nSimulating Flow " + flowId);
             System.out.println("Source: " + source);
             System.out.println("Destination: " + destination);
+            System.out.println("Size: " + size + " Mb");
 
             List<String> path = new ArrayList<>();
             path.add(source);
