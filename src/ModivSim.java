@@ -6,8 +6,8 @@ import java.net.Socket;
 import java.util.*;
 
 public class ModivSim extends Thread {
-    //private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
-    private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
+    private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
+    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
     private static final int SERVER_PORT = 4444;
     //protected static ObjectInputStream is;
     //protected static ObjectOutputStream os;
@@ -30,8 +30,8 @@ public class ModivSim extends Thread {
         numDynamicLinks = 0;
         String nodeInfo;
         for(String nodeFile : nodeFiles){
-            //nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
@@ -113,41 +113,44 @@ public class ModivSim extends Thread {
         }
 
         /* POPUP */
-
-        String[] column = new String[numNodes];
-        Arrays.fill(column, "Node");
-        String[][] a = new String[numNodes][numNodes];
-        String[][] b = new String[numNodes][2];
+        String[] column1 = new String[numNodes];
+        String[] column2 = new String[2];
+        Arrays.fill(column1, "Node");
+        Arrays.fill(column2, "Node");
         double time=0.0;
-
         //Distance table
         for(int x=0;x<nodes.size();x++) {
+            String[][] a = new String[numNodes][numNodes];
+            String[][] b = new String[numNodes][2];
             final JFrame output = new JFrame("Output window for Router #" + x);
-            output.setVisible(true);
+            //output.setVisible(true);
             JLabel l = new JLabel("Current state for router " + x + " at time " + time);
             output.add(l,BorderLayout.NORTH);
 
-            output.setSize(300, 300);
+            output.setSize(350, 350);
             int length = nodes.get(x).distanceTable[0].length;
             for (int i = 0; i < length; i++) {
                 for (int j = 0; j < length; j++) {
                     int[][] temp = nodes.get(x).getDistanceTable();
                     a[i][j] = (String.valueOf(temp[i][j]));
-                    JTable jt = new JTable(a, column);
-                    output.add(jt, BorderLayout.CENTER);
                 }
+                JTable jt = new JTable(a, column1);
+                output.add(jt, BorderLayout.CENTER);
             }
 
             //Forwarding table
             for (int i = 0; i < numNodes; i++) {
                 Hashtable<String, String> temp = nodes.get(x).getForwardingTable();
-                b[i][1] = temp.get(i);
-                b[i][0]=String.valueOf(temp.get(i));
-                JTable ft = new JTable(b, column);
-                output.add(ft, BorderLayout.SOUTH);
-
+                //b[i][0] = String.valueOf(temp.get(i));
+                b[i][0] = String.valueOf(i);
+                b[i][1] = temp.get(String.valueOf(i));
             }
+            JTable ft = new JTable(b, column2);
+            output.add(ft, BorderLayout.SOUTH);
+
+            output.setVisible(true);
         }
+
         //TODO: distance ve forwardingTable'lar hazır. Burda pencerelerde gösterebiliriz (popupları buraya taşıyabiliriz). getDistanceTable() ve getForwardingTable() methodlarını kullanabilirsin
 
         //TODO: Close sockets (modivsim and nodes)
