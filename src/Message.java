@@ -11,10 +11,11 @@ public class Message implements Serializable {
     protected Hashtable<String, String> forwardingTable;
 
     /**
-     *
-     * @param senderID
-     * @param receiverID
-     * @param distanceTable
+     * Message object is used to transfer information between nodes.
+     * @param senderID Sender Id
+     * @param receiverID Receiver Id
+     * @param distanceTable Distance table of the sender
+     * @param forwardingTable Forwarding table of the sender
      */
     public Message(int senderID, int receiverID, int[][] distanceTable, Hashtable<String, String> forwardingTable){
         this.senderID = senderID;

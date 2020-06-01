@@ -1,68 +1,39 @@
-import org.w3c.dom.traversal.NodeIterator;
-
-import javax.net.ssl.SSLEngineResult;
-import java.io.*;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
 /**
- * Node class representing every router in a network graph
+ * Node class representing a router in a network graph
  */
 public class Node {
-    private static final String SERVER_ADDRESS = "localhost";
-    private static final int SERVER_PORT = 4444;
-    protected Socket s;
-    protected ObjectInputStream is;
-    protected ObjectOutputStream os;
     protected String nodeID;
+    protected int numNeighbors; // Total number of neighbors
+    protected boolean hasDynamicLink = false;
     protected Hashtable<String,Integer> linkCost = new Hashtable<>();
     protected Hashtable<String,Integer> linkBandwidth = new Hashtable<>();
     protected Hashtable<String,Node> neighborNodes = new Hashtable<>();
-    protected Hashtable<String,Socket> neighborSockets = new Hashtable<>();
     protected Hashtable<String, String> forwardingTable = new Hashtable<>();
-    protected int[][] distanceTable;
-    protected int[] bottleneckBandwidthTable;
-    protected int numNeighbors; // Total number of neighbors
     protected ArrayList<Integer> neighborIds = new ArrayList<>(); // ArrayList containing neighbor IDs
-    protected boolean hasDynamicLink = false;
     protected ArrayList<String> dynamicNeighbors = new ArrayList<>();
+    protected int[][] distanceTable;
 
-    /**
-     *
-     */
     public Node(){}
 
     /**
-     *
-     * @param nodeID
-     * @param linkCost
-     * @param linkBandwidth
-     * @param distanceTable
-     * @param bottleneckBandwidthTable
+     * Node object that represents a router in a network
+     * @param nodeID Id of the node (router) object
+     * @param linkCost Hashtable containing link costs to neighbors
+     * @param linkBandwidth Hashtable containing bandwidths to neighbors
+     * @param distanceTable 2d array containing lowest costs to every node in the network
      */
-    public Node(String nodeID, Hashtable<String,Integer> linkCost, Hashtable<String,Integer> linkBandwidth, int[][] distanceTable, int[] bottleneckBandwidthTable){
+    public Node(String nodeID, Hashtable<String,Integer> linkCost, Hashtable<String,Integer> linkBandwidth, int[][] distanceTable){
         this.nodeID = nodeID;
         this.linkCost = linkCost;
         this.linkBandwidth = linkBandwidth;
         this.distanceTable = distanceTable;
-        this.bottleneckBandwidthTable = bottleneckBandwidthTable;
     }
 
     /**
-     * Creates a socket and connects to the server
-     */
-    public void Connect(){
-        try{
-            s = new Socket(SERVER_ADDRESS, SERVER_PORT);
-            System.out.println("Node" + nodeID + " connected successfully.");
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     *
+     * Initializes the distance table. Initially, every cell is set to 999 to indicate infinity.
      * @param numNodes Total number of nodes in the graph
      */
     public void initializeDistanceTable(int numNodes) {
@@ -75,8 +46,23 @@ public class Node {
     }
 
     /**
+     * Initializes the forwarding table. Initially, only neighbors are assigned a value. If the node is not connected
+     * "null" is written to the table.
      *
-     * @param numNodes
+     * For example, given the graph below
+     * 0 ---- 1 ----- 2
+     *  \   /
+     *   \ /
+     *    3
+     *
+     * Node 0's forwarding table during initialization would look like the following,
+     * Destination -  Forward to
+     *   Node 1    |     1
+     *   Node 2    |     2
+     *   Node 3    |    null
+     *
+     * The values are updates in receiveUpdate() method.
+     * @param numNodes Total number of nodes in the graph
      */
     public void initializeForwardingTable(int numNodes){
         for(int i = 0; i < numNodes; i++)
@@ -90,120 +76,103 @@ public class Node {
     }
 
     /**
+     * receiveUpdate() takes a Message object and looks for updates. If a shorter path exists, the distanceTable and
+     * forwardingTable is updated. The formula used for finding the shortest path is as follows,
+     * dx(y) = min{ c(x,v) + dv(y) } where x is the source node and y is the destination. v indicates every neighbor
+     * of x.
      *
-     * @param senderId
+     * The function looks for a path which goes through v. There may be multiple nodes between v and y. To calculate
+     * the distance between v and y, v's distanceTable is used.
+     *
+     *   x --- v --- ... --- y
+     *
+     * @param m Message object sent from neighbor
+     * @return true if node was updated, false otherwise
      */
-    public boolean receiveUpdate(String senderId){
+    public boolean receiveUpdate(Message m){
         boolean isUpdated = false;
-        Socket neighborSocket = neighborSockets.get(senderId);
-        try {
-            is = new ObjectInputStream(neighborSocket.getInputStream());
-            Message m = (Message) is.readObject();
-            System.out.println("Node " + nodeID + " received a message from Node " + m.senderID);
 
-            // Update the distance table according to the formula dx(y) = min{ c(x,v) + dv(y) }
-            int numNodes = distanceTable[0].length;
-            int previousCostFromNbr = 999;
+        // Retrieve values
+        int receiverID = m.receiverID;
+        int senderID = m.senderID;
+        System.out.println("Node " + receiverID + " received a message from Node " + senderID);
 
-            for(int i = 0; i < numNodes; i++){
-                if(i != Integer.parseInt(nodeID)){ // i == id -> cost will be 0, so don't check
-                    int dx = distanceTable[Integer.parseInt(nodeID)][i]; // this node's distance table
-                    for(int j = 0; j < numNeighbors; j++){ // Check costs to and from each neighbor
-                        int nbrId = neighborIds.get(j);
-                        int c = linkCost.get(String.valueOf(nbrId));
-                        int dv = m.distanceTable[nbrId][i];
-                        int costFromNeighbor = c + dv;
+        // Update the distance table according to the formula dx(y) = min{ c(x,v) + dv(y) }
+        int numNodes = distanceTable[0].length;
 
-                        // TODO: Clarify this section
-                        if(costFromNeighbor < dx){ // Update value
-                            forwardingTable.replace(String.valueOf(i), String.valueOf(nbrId)); // Update forwarding table
-                            distanceTable[Integer.parseInt(nodeID)][i] = costFromNeighbor;
-                            distanceTable[i][Integer.parseInt(nodeID)] = costFromNeighbor;
-                            isUpdated = true;
-                        } else if (dx < costFromNeighbor && costFromNeighbor < previousCostFromNbr){ // Find the second closest route
-                            String forwardingNodes = forwardingTable.get(String.valueOf(i));
-                            String[] forwardInfo = forwardingNodes.split("\\,");
-                            if(forwardInfo.length < 2){
-                                forwardingNodes += ", " + String.valueOf(nbrId);
-                                forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
-                            } else {
-                                if(!forwardInfo[1].equals(String.valueOf(nbrId))){
-                                    forwardingNodes = forwardInfo[0] + ", " + String.valueOf(nbrId);
-                                    forwardingTable.replace(String.valueOf(i), forwardingNodes); // Update forwarding table
-                                }
-                            }
+        for(int i = 0; i < numNodes; i++){
+            if(i != receiverID){ // i == id -> cost will be 0, so don't check
+                int dx = distanceTable[receiverID][i]; // this node's distance table
+                for(int j = 0; j < numNeighbors; j++){ // Check costs to and from each neighbor
+                    int nbrId = neighborIds.get(j);
+                    int c = linkCost.get(String.valueOf(nbrId));
+                    int dv = m.distanceTable[nbrId][i];
+                    int costFromNeighbor = c + dv;
 
-                        }
+                    if(costFromNeighbor < dx){ // Update value
+                        forwardingTable.replace(String.valueOf(i), String.valueOf(nbrId)); // Update forwarding table
+                        distanceTable[receiverID][i] = costFromNeighbor;
+                        distanceTable[i][receiverID] = costFromNeighbor;
+                        isUpdated = true;
                     }
                 }
             }
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
         }
 
         // Print update summary
-        System.out.println("SenderID: " + senderId);
-        System.out.println("ReceiverID: " + nodeID);
+        System.out.println("SenderID: " + senderID);
+        System.out.println("ReceiverID: " + receiverID);
         printDistanceTable();
         if(isUpdated){
-            System.out.println("Node " + nodeID + " has been updated.");
+            System.out.println("Node " + receiverID + " has been updated.");
         } else {
-            System.out.println("No update occurred in Node " + nodeID);
+            System.out.println("No update occurred in Node " + receiverID);
         }
 
         return isUpdated;
     }
 
     /**
-     *
-     * @return
+     * Send updates to neighbors in a Message object. For details of the message see Message.java
+     * @return true if an update has occurred in at least one of the neighbors, false otherwise
      */
     public boolean sendUpdate(){
         int counter = 0;
         for(int i = 0; i < numNeighbors; i++){
             int neighbor = neighborIds.get(i);
             Message m = new Message(Integer.parseInt(nodeID), neighbor, distanceTable, forwardingTable);
-            try {
-                os = new ObjectOutputStream(s.getOutputStream());
-                os.writeObject(m); // Send message through socket
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
             // Call neighbor's receive method
             Node neighborNode = neighborNodes.get(String.valueOf(neighbor));
-            boolean isUpdated = neighborNode.receiveUpdate(nodeID);
+            boolean isUpdated = neighborNode.receiveUpdate(m);
             if(!isUpdated){
                 counter++;
             }
         }
 
-        // If the graph has converged
-        if(counter != numNeighbors){
-            return true; // An update in one of the nodes has occurred
-        } else {
-            return false; // Neighbors have converged
-        }
+        // If the neighbors have converged (no more updates are taking place) return true
+        // Neighbors have converged
+        return counter != numNeighbors; // An update in one of the nodes has occurred
     }
 
     /**
-     *
-     * @return
+     * Returns the forwarding table.
+     * @return Hashtable<String,String> forwardingTable
      */
     public Hashtable<String,String> getForwardingTable(){
         return this.forwardingTable;
     }
 
     /**
-     *
-     * @return
+     * Returns the distance table.
+     * @return int[][] distanceTable
      */
     public int[][] getDistanceTable(){
         return this.distanceTable;
     }
 
     /**
-     * Prints the content of the distanceTable
+     * Prints the content of the distanceTable.
      */
     public void printDistanceTable(){
         System.out.println("Node " + nodeID + " distanceTable:");
@@ -216,7 +185,7 @@ public class Node {
                     System.out.print(distanceTable[i][j] + ", ");
                 }
             }
-            System.out.println("");
+            System.out.println();
         }
     }
 }

@@ -1,22 +1,18 @@
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.*;
 import java.util.List;
 
 public class ModivSim extends Thread {
+    //TODO: add a config file
     private static final String nodesFolder = "D:\\Code\\modivsim-simulator\\nodes";
     private static final String flowPath = "D:\\Code\\modivsim-simulator\\flow\\flow.txt";
-    //private static final String nodesFolder = "/Users/berrakperk/Desktop/416/modivsim-simulator/nodes";
-    private static final int SERVER_PORT = 4444;
     static ArrayList<Node> nodes = new ArrayList<>(); // Arraylist to keep nodes
-    static  ArrayList<Socket> sockets = new ArrayList<>(); // Arraylist to keep sockets
     static int numDynamicLinks;
     static Random rand = new Random();
 
-    public static void main(String args[]) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         System.out.println("ModivSim started...");
         Scanner sc= new Scanner(System.in);
 
@@ -27,49 +23,30 @@ public class ModivSim extends Thread {
         String[] nodeFiles;
         File f = new File(nodesFolder);
         nodeFiles = f.list();
+        assert nodeFiles != null;
         int numNodes = nodeFiles.length; // Total number of nodes
 
         numDynamicLinks = 0;
         String nodeInfo;
         for(String nodeFile : nodeFiles){
             nodeInfo = readNode(nodesFolder + "\\" + nodeFile);
-            //nodeInfo = readNode(nodesFolder + "/" + nodeFile);
+            //nodeInfo = readNode(nodesFolder + "/" + nodeFile); //TODO: fix this line
             Node n = initializeNode(nodeInfo, numNodes);
             nodes.add(n);
         }
 
-        /* Initialize server socket */
-        Socket s;
-        ServerSocket serverSocket = null;
-        try{
-            serverSocket = new ServerSocket(SERVER_PORT);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        /* Create node sockets and accept incoming requests */
-        nodes.forEach(node -> node.Connect());
-        for(int i = 0; i < nodes.size(); i++){
-            try{
-                s = serverSocket.accept();
-                sockets.add(s);
-            } catch (IOException e){
-                e.printStackTrace();
-            }
-        }
         System.out.println("All nodes initialized successfully.");
 
         /* Update HashTables of nodes to help with neighbor communications */
-        nodes.forEach(node -> {
-            node.neighborIds.forEach(neighborId -> { // For each neighbor of the node
-                node.neighborNodes.put(String.valueOf(neighborId), nodes.get(neighborId));
-                node.neighborSockets.put(String.valueOf(neighborId), sockets.get(neighborId));
-            });
-        });
+        nodes.forEach(node -> node.neighborIds.forEach(neighborId -> { // For each neighbor of the node
+            node.neighborNodes.put(String.valueOf(neighborId), nodes.get(neighborId));
+        }));
 
         int iterations = 0;
         while(true){
-            // Generate random numbers
+            /* A dynamic link's cost changes each iteration with a probability of 0.5
+            If the graph has dynamic links generate random numbers in the beginning of each iteration
+            The range is between [0,10] */
             int[] randomCosts = new int[numDynamicLinks];
             if(numDynamicLinks > 0){
                 for(int i = 0; i < numDynamicLinks; i++){
@@ -81,15 +58,14 @@ public class ModivSim extends Thread {
                     }
                 }
 
-                for(int j = 0; j < nodes.size(); j++){
-                    Node node = nodes.get(j);
-                    if(node.hasDynamicLink){
-                        for(int k = 0; k < node.dynamicNeighbors.size(); k++){
+                for (Node node : nodes) {
+                    if (node.hasDynamicLink) { //Update dynamic costs
+                        for (int k = 0; k < node.dynamicNeighbors.size(); k++) {
                             String dynamicNbr = node.dynamicNeighbors.get(k);
                             int index = Integer.parseInt(dynamicNbr) - 1;
-                            if(index < 0) index = 0;
-                            if(randomCosts[index] != -1){
-                                node.linkCost.replace(dynamicNbr,randomCosts[index]);
+                            if (index < 0) index = 0;
+                            if (randomCosts[index] != -1) {
+                                node.linkCost.replace(dynamicNbr, randomCosts[index]);
                             }
                         }
                     }
@@ -97,10 +73,9 @@ public class ModivSim extends Thread {
             }
 
             int counter = 0;
-            boolean isUpdated = false;
-            for(int i = 0; i < numNodes; i++){
-                Node node = nodes.get(i);
-                isUpdated = node.sendUpdate();
+            boolean isUpdated;
+            for(Node node : nodes){
+                isUpdated = node.sendUpdate(); // main class invokes the send method
                 if(!isUpdated){
                     counter++;
                 }
@@ -118,26 +93,23 @@ public class ModivSim extends Thread {
 
         /* Flow simulation */
         System.out.println("\nStarting the simulation...");
-        simulateFlow(flowPath);
-        System.out.println("");
+        simulateFlow();
+        System.out.println();
 
-        /* POPUP */
+        /* Pop-up windows */
         String[] column1 = new String[numNodes];
         String[] column2 = new String[2];
         Arrays.fill(column1, "Node");
         Arrays.fill(column2, "Node");
-        double time=0.0;
-        //Distance table
+
         for(int x=0;x<nodes.size();x++) {
             String[][] a = new String[numNodes][numNodes];
             String[][] b = new String[numNodes][2];
             final JFrame output = new JFrame("Output window for Router #" + x);
-            //output.setVisible(true);
-            JLabel l = new JLabel("Current state for router " + x + " at time " + time);
-            output.add(l,BorderLayout.NORTH);
 
             output.setSize(350, 350);
             int length = nodes.get(x).distanceTable[0].length;
+            // Display distance table
             for (int i = 0; i < length; i++) {
                 for (int j = 0; j < length; j++) {
                     int[][] temp = nodes.get(x).getDistanceTable();
@@ -147,10 +119,9 @@ public class ModivSim extends Thread {
                 output.add(jt, BorderLayout.CENTER);
             }
 
-            //Forwarding table
+            // Display forwarding table
             for (int i = 0; i < numNodes; i++) {
                 Hashtable<String, String> temp = nodes.get(x).getForwardingTable();
-                //b[i][0] = String.valueOf(temp.get(i));
                 b[i][0] = String.valueOf(i);
                 b[i][1] = temp.get(String.valueOf(i));
             }
@@ -159,15 +130,16 @@ public class ModivSim extends Thread {
 
             output.setVisible(true);
         }
-
-        //TODO: Close sockets (modivsim and nodes)
     }
 
     /**
-     *
-     * @param nodePath
-     * @return
-     * @throws IOException
+     * Reads the node file and returns the single line node info.
+     * @param nodePath Path to the "node*.txt" file where * is the node id.
+     * @return Single line information written in the node.txt file
+     * nodeInfo structure: <nodeID, (neighborId, linkCostToNeighbor, bandwidthToNeighbor), (...), (...)>
+     * "(...)" represents additional neighbors
+     * Example nodeInfo: "0,(1,5,10),(2,3,15)"
+     * @throws IOException Input/output exception
      */
     public static String readNode(String nodePath) throws IOException {
         FileReader fr = new FileReader(nodePath);
@@ -179,10 +151,20 @@ public class ModivSim extends Thread {
     }
 
     /**
+     * Reads flow.txt file and return each line in an array.
      *
-     * @param flowPath
-     * @return
-     * @throws IOException
+     * Flow file structure,
+     * (Flow name, start, destination, file size)
+     * (... additional flows ...)
+     *
+     * Example flow.txt,
+     * A,0,3,100
+     * B,0,3,200
+     * C,1,2,100
+     *
+     * @param flowPath Path to the flow.txt file
+     * @return An array containing each line
+     * @throws IOException Input/output exception
      */
     public static List<String> readFlow(String flowPath) throws IOException {
         FileReader fr = new FileReader(flowPath);
@@ -199,15 +181,19 @@ public class ModivSim extends Thread {
     }
 
     /**
-     *
-     * @param nodeInfo
-     * @return
+     * Creates a node from the given nodeInfo. If a node has dynamic links, a random cost is generated between [0,10].
+     * distanceTable and forwardingTable's are initialized here.
+     * @param nodeInfo Node information as a single string, read from the node*.txt file
+     * Example nodeInfo: "0,(1,5,10),(2,3,15)"
+     * @param numNodes Total number of nodes in the graph.
+     * @return Initialized Node object
      */
     private static Node initializeNode(String nodeInfo, int numNodes) {
         Node node = new Node();
         node.initializeDistanceTable(numNodes); // Initialize the distance table
 
-        String info[] = nodeInfo.split("\\,\\(|\\)\\,\\(|\\)"); // Example nodeInfo: "0,(1,5,10),(2,3,15)"
+        String[] info; // Example nodeInfo: "0,(1,5,10),(2,3,15)"
+        info = nodeInfo.split(",\\(|\\),\\(|\\)");
 
         node.nodeID = info[0]; // Set node id (string)
         int id = Integer.parseInt(info[0]);
@@ -224,7 +210,7 @@ public class ModivSim extends Thread {
         node.numNeighbors = numNeighbors;
         for(int i = 1; i <= numNeighbors; i++){
             neighbor = info[i];
-            neighborInfo = neighbor.split("\\,");
+            neighborInfo = neighbor.split(",");
             // The information we need
             neighborID = neighborInfo[0];
             linkCost = neighborInfo[1];
@@ -255,21 +241,39 @@ public class ModivSim extends Thread {
     }
 
     /**
+     * Simulates flow(s) depending on the information in the flow.txt file. Paths are marks as "occupied" if they are
+     * being used. Example flow simulation,
      *
-     * @param flowPath
+     * Flow.txt:
+     * A,0,3,100
+     * B,0,3,200
+     *
+     * The shortest path from 0 to 3 will be occupied for 100/B seconds where B is the link bandwidth. If a new flow
+     * arrives during this period, it is queued.
+     *
+     * @throws IOException Input/output exception
      */
-    private static void simulateFlow(String flowPath) throws IOException {
-        List<String> flowInfoArray = readFlow(flowPath);
+    private static void simulateFlow() throws IOException {
+        List<String> flowInfoArray;
+        flowInfoArray = readFlow(ModivSim.flowPath);
 
         long start = System.nanoTime();
+
+        /*
+        Example link duration table,
+        Flow - Duration
+         01  |   5
+         10  |   5
+         This means that the link between node 0 and 1 (also 1 and 0 since its bidirectional) is occupied for 5 seconds.
+         */
         Hashtable<String,String> linkDuration = new Hashtable<>();
-        Queue<String> flowQueue = new LinkedList<>();
+        Queue<String> flowQueue = new LinkedList<>(); // Queued flows are stored here
 
         System.out.println(flowInfoArray.size() + " flows found.");
 
         for(String flow : flowInfoArray){
             boolean isQueued = false;
-            String[] flowInfo = flow.split("\\,");
+            String[] flowInfo = flow.split(",");
             String flowId = flowInfo[0];
             String source = flowInfo[1];
             String destination = flowInfo[2];
@@ -287,43 +291,16 @@ public class ModivSim extends Thread {
             while(!node.nodeID.equals(destination)){ // Until we reach our destination continue
                 String hops = node.forwardingTable.get(destination);
                 String firstHop = hops.substring(0,1);
-                //String secondHop = hops.substring(3,4);
 
                 String l1 = source + firstHop;
-                //String l2 = source + secondHop;
                 String durationForL1 = linkDuration.get(l1);
-                //String durationForL2 = linkDuration.get(l2);
 
                 if(durationForL1 == null){ // Assign first hop
                     path.add(firstHop);
                     int bandwidthToHop = node.linkBandwidth.get(firstHop);
                     if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
                 } else {
-                    /*
-                    int startInSecond = Math.toIntExact(TimeUnit.SECONDS.convert(start, TimeUnit.NANOSECONDS));
-                    int currentTimeInSeconds = Math.toIntExact(TimeUnit.SECONDS.convert(System.nanoTime(), TimeUnit.NANOSECONDS));
-                    int timeElapsed = currentTimeInSeconds - startInSecond;
-                    if(timeElapsed < Integer.parseInt(durationForL1)){ // Link1 is still occupied, check the next link
-                        if(durationForL2 == null){
-                            path.add(secondHop);
-                            int bandwidthToHop = node.linkBandwidth.get(secondHop);
-                            if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
-                        } else {
-                            if(timeElapsed < Integer.parseInt(durationForL2)){ // Second link is also occupied, queue link
-                                System.out.println("Links are occupied, adding Flow " + flowId + " to the queue.");
-                                flowQueue.add(flow);
-                            } else { // Time has elapsed, assign link 2
-                                path.add(secondHop);
-                                int bandwidthToHop = node.linkBandwidth.get(secondHop);
-                                if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
-                            }
-                        }
-                    } else { // Time has elapsed, assign link 1
-                        path.add(firstHop);
-                        int bandwidthToHop = node.linkBandwidth.get(firstHop);
-                        if(bandwidthToHop < bottleneck) bottleneck = bandwidthToHop;
-                    }
-                    */
+                    // TODO: Clear linkDuration table after the transfer is complete and add new flow, else add to queue
                     System.out.println("Links are occupied, adding Flow " + flowId + " to the queue.");
                     flowQueue.add(flow);
                     isQueued = true;
